@@ -121,7 +121,27 @@ def call_grok(messages):
     except Exception as e:
         return f"Помилка зв'язку: {str(e)}"
 
+def route_query(query: str):
+    """Агент-диспетчер: вирішує, чи потрібні нам документи."""
+    router_prompt = f"""
+    Ти — диспетчер запитів UniNexus. Твоє завдання — вирішити, чи потребує питання пошуку в базі знань (лекції, методички), чи це просто загальне спілкування.
 
+    ПИТАННЯ: "{query}"
+
+    Відповідай ТІЛЬКИ одним словом:
+    - DOCS: якщо питання стосується навчання, конкретних тем з лекцій, формул або методичок.
+    - GENERAL: якщо це привітання ("Привіт", "Як справи"), загальне питання, жарт або прохання, яке не стосується твоїх PDF.
+
+    ВІДПОВІДЬ:
+    """
+    messages = [{"role": "user", "content": router_prompt}]
+    # Викликаємо Groq, щоб він прийняв рішення
+    decision = call_grok(messages).strip().upper()
+    
+    # Повертаємо рішення
+    if "DOCS" in decision:
+        return "DOCS"
+    return "GENERAL"
 # =========================
 # ASK AI
 # =========================
@@ -141,7 +161,7 @@ async def upload_document(file: UploadFile = File(...)):
             chunk_size=1000,
             chunk_overlap=200,
             separators=["\n\n", "\n", ".", " ", ""],
-            add_start_index=Truels
+            add_start_index=True
             
         )
 
@@ -184,30 +204,51 @@ async def upload_document(file: UploadFile = File(...)):
 @app.post("/api/ask")
 async def ask_ai(request: ChatRequest):
     global retriever
-    if not retriever:
-        return {"answer": "База знань порожня. Покладіть PDF у папку knowledge_base."}
+    
+    # 1. Агент аналізує запит
+    decision = route_query(request.query)
+    print(f"🤖 Агент прийняв рішення: {decision}")
 
-    docs = retriever.invoke(request.query)
-    context = ""
-    for d in docs:
-        fname = d.metadata.get("file_name", "Документ")
-        page = d.metadata.get("page", 0) + 1
-        context += f"\n[Джерело: {fname}, стор. {page}]\n{d.page_content}\n"
+    # 2. Вибір логіки на основі рішення
+    if decision == "DOCS" and retriever:
+        # ШЛЯХ RAG: Шукаємо в документах
+        docs = retriever.invoke(request.query)
+        context = ""
+        for d in docs:
+            fname = d.metadata.get("file_name", "Документ")
+            page = d.metadata.get("page", 0) + 1
+            context += f"\n[Джерело: {fname}, стор. {page}]\n{d.page_content}\n"
 
-    system_prompt = f"""
-Ти — інтелектуальний асистент UniNexus. 
-Давай відповіді ТІЛЬКИ на основі наданого контексту. 
-Обов'язково вказуй назву файлу та номер сторінки у відповіді.
-КОНТЕКСТ:
-{context}
-"""
+        system_prompt = f"""
+        Ти — інтелектуальний асистент UniNexus. 
+        Давай відповіді ТІЛЬКИ на основі наданого контексту з навчальних матеріалів. 
+        Обов'язково вказуй назву файлу та номер сторінки.
+        КОНТЕКСТ:
+        {context}
+        """
+    else:
+        # ШЛЯХ GENERAL: Просто спілкуємося
+        system_prompt = """
+        Ти — дружній AI-асистент UniNexus. 
+        Зараз ти спілкуєшся на загальні теми (привітання, розмова). 
+        Будь корисним, використовуй емодзі. 
+        Якщо запитають щось складне по навчанню, скажи, що можеш пошукати це в завантажених методичках.
+        """
+
+    # 3. Формуємо фінальний запит до ШІ
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": request.query}
     ]
     
-    answer = call_grok(messages)
-    return {"answer": answer}
+    try:
+        answer = call_grok(messages)
+        return {
+            "answer": answer,
+            "agent_decision": decision  # Корисно для фронтенду
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =========================
