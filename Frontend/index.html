@@ -181,7 +181,7 @@
         if (!group) return;
         scheduleContainer.innerHTML = `<div class="text-center py-10 animate-pulse text-[10px]">Синхронізація...</div>`;
         try {
-            const res = await fetch(`http://localhost:8000/api/schedule/${group}`);
+            const res = await fetch(`http://localhost:3000/api/schedule/${group}`);
             cachedSchedule = await res.json();
             renderDay(datePicker.value);
         } catch (e) { scheduleContainer.innerHTML = `<div class="text-xs text-red-400">Помилка API</div>`; }
