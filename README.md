@@ -23,8 +23,8 @@
 
 ## 🚀 Основні функції
 - 📅 **Dynamic Schedule:** Синхронізація з БД університету та миттєві Push-сповіщення про зміни.
-- 🧠 **RAG Knowledge Base:** Завантажуйте PDF та фото дошки. AI проіндексує їх для швидкого пошуку.
-- 💬 **AI Assistant (Llama 3.3):** Ставте питання по лекціях: *"Що було на 5-й парі?"* або *"Поясни формулу з фото"*.
+- 🧠 **RAG Knowledge Base:** Завантажуйте PDF та тексту. AI проіндексує їх для швидкого пошуку.
+- 💬 **AI Assistant (Llama 3.3):** Ставте питання по лекціях: *"Що було на 5-й парі?"*.
 - 🤝 **Collective Memory:** Спільний доступ до конспектів та ресурсів для всієї групи.
 - 🌓 **Modern UI/UX:** Темна та світла теми, адаптовані для зручного використання під час занять.
 
@@ -46,3 +46,10 @@
 ```bash
 git clone https://github.com/w1seng/hackaton-.git
 cd hackaton-
+2. Встановлення залежностей
+ls
+
+"fastapi`nuvicorn`nrequests`nlangchain`nlangchain-community`nlangchain-text-splitters`nfaiss-cpu`nsentence-transformers`npython-dotenv" | Out-File -FilePath requirements.txt -Encoding utf8
+
+pip install -r requirements.txt
+
