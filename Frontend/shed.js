@@ -5,24 +5,26 @@ const iconv = require("iconv-lite");
 const cors = require("cors");
 
 const app = express();
+
 app.use(cors());
 app.use(express.static(__dirname));
 
 const BASE_URL = "https://dekanat.nung.edu.ua/cgi-bin/timetable.cgi";
 
 /* ================= CACHE ================= */
+
 const cache = {};
-const CACHE_TIME = 10 * 60 * 1000; // 10 хв
-let lastUpdate = {};
+const CACHE_TIME = 10 * 60 * 1000;
+const lastUpdate = {};
 
 /* ================= HELPERS ================= */
 
 function normalizeText(text) {
-  return text.replace(/\s+/g, " ").trim();
+  return String(text || "").replace(/\s+/g, " ").trim();
 }
 
 function formatTime(text) {
-  const match = text.match(/\d{2}:\d{2}/);
+  const match = String(text || "").match(/\d{2}:\d{2}/);
   return match ? match[0] : "";
 }
 
@@ -32,37 +34,72 @@ function extractRoom(text) {
 }
 
 function removeRoom(text) {
-  return text.replace(/\s*\d+[.\wА-Яа-яІіЇїЄєҐґA-Za-z]*\.ауд\.?/gi, "").trim();
+  return text
+    .replace(/\s*\d+[.\wА-Яа-яІіЇїЄєҐґA-Za-z]*\.ауд\.?/gi, "")
+    .trim();
 }
 
 function splitLessons(text) {
   const cleaned = normalizeText(text);
-  const regex = /(?=[А-ЯІЇЄҐ].*?\((Л|Лаб|Пр)\))/g;
 
-  return cleaned
-    .split(regex)
+  const parts = cleaned
+    .split(/(?=[А-ЯІЇЄҐ][^.!?]*?\((Л|Лаб|Пр)\))/g)
     .map(x => x.trim())
-    .filter(x => x.length > 8);
+    .filter(x => x.length > 8 && /\((Л|Лаб|Пр)\)/.test(x));
+
+  return parts.length ? parts : [cleaned];
 }
 
-/* ================= PARSER ================= */
-
 function parseLesson(text) {
+  text = normalizeText(text);
+
   const room = extractRoom(text);
 
+  const teacherRegex =
+    /(доцент|асистент|професор|ст\.?\s*викладач|викладач)\s+([А-ЯІЇЄҐ][а-яіїєґ']+\s+[А-ЯІЇЄҐ][а-яіїєґ']+\s+[А-ЯІЇЄҐ][а-яіїєґ']+)/i;
+
+  const match = text.match(teacherRegex);
+
+  if (!match) {
+    return {
+      subject: removeRoom(text),
+      teacher: "",
+      room
+    };
+  }
+
+  const teacher = removeRoom(match[0]);
+  const subject = removeRoom(text.slice(0, match.index));
+
   return {
-    subject: removeRoom(text),
-    teacher: "",
+    subject,
+    teacher,
     room
   };
 }
 
-/* ================= FETCH ================= */
+/* ================= FETCH SCHEDULE ================= */
 
-async function fetchSchedule(groupId) {
-  const response = await axios.get(
-    `${BASE_URL}?n=700&group=${groupId}`,
-    { responseType: "arraybuffer" }
+async function fetchSchedule(groupName) {
+  const params = new URLSearchParams();
+
+  params.append("faculty", "0");
+  params.append("teacher", "");
+  params.append("course", "0");
+  params.append("group", groupName);
+  params.append("sdate", "");
+  params.append("edate", "");
+  params.append("n", "700");
+
+  const response = await axios.post(
+    `${BASE_URL}?n=700`,
+    params.toString(),
+    {
+      responseType: "arraybuffer",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      }
+    }
   );
 
   const html = iconv.decode(response.data, "win1251");
@@ -72,23 +109,25 @@ async function fetchSchedule(groupId) {
 
   $(".col-md-6.col-sm-6.col-xs-12.col-print-6").each((_, day) => {
     const date = normalizeText($(day).find("h4").first().text());
+
     if (!date) return;
 
     result[date] = [];
 
-    $(day).find("tr").each((_, row) => {
+    $(day).find("table tr").each((_, row) => {
       const cols = $(row).find("td");
+
       if (cols.length < 3) return;
 
       const time = formatTime($(cols[1]).text());
-      const text = normalizeText($(cols[2]).text());
+      const fullText = normalizeText($(cols[2]).text());
 
-      if (!time || !text) return;
+      if (!time || !fullText) return;
 
-      const lessons = splitLessons(text);
+      const lessons = splitLessons(fullText);
 
-      lessons.forEach(l => {
-        const parsed = parseLesson(l);
+      lessons.forEach(lessonText => {
+        const parsed = parseLesson(lessonText);
 
         result[date].push({
           time,
@@ -99,7 +138,9 @@ async function fetchSchedule(groupId) {
       });
     });
 
-    if (result[date].length === 0) delete result[date];
+    if (result[date].length === 0) {
+      delete result[date];
+    }
   });
 
   return result;
@@ -108,7 +149,7 @@ async function fetchSchedule(groupId) {
 /* ================= API ================= */
 
 app.get("/api/schedule/:group", async (req, res) => {
-  const group = req.params.group;
+  const group = decodeURIComponent(req.params.group).trim();
 
   try {
     const now = Date.now();
@@ -127,10 +168,11 @@ app.get("/api/schedule/:group", async (req, res) => {
     lastUpdate[group] = now;
 
     res.json(data);
-
   } catch (err) {
-    console.log(err.message);
-    res.status(500).json({ error: "schedule error" });
+    console.error("Schedule error:", err.message);
+    res.status(500).json({
+      error: "schedule error"
+    });
   }
 });
 
