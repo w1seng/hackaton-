@@ -29,193 +29,236 @@
             background-image: 
                 radial-gradient(3px 3px at 20px 30px, #eee, rgba(0,0,0,0)),
                 radial-gradient(4px 4px at 40px 70px, #fff, rgba(0,0,0,0)),
-                radial-gradient(2.5px 2.5px at 50px 160px, #ddd, rgba(0,0,0,0)),
-                radial-gradient(3px 3px at 80px 120px, #fff, rgba(0,0,0,0)),
-                radial-gradient(4px 4px at 110px 210px, #ddd, rgba(0,0,0,0)),
-                radial-gradient(2.5px 2.5px at 150px 180px, #fff, rgba(0,0,0,0));
+                radial-gradient(2.5px 2.5px at 50px 160px, #ddd, rgba(0,0,0,0));
             animation: animateStars 40s linear infinite; 
         }
-        .stars2 { background-image: inherit; animation: animateStars 60s linear infinite; opacity: 0.15; background-size: 300px 300px; }
-        .stars3 { background-image: inherit; animation: animateStars 80s linear infinite; opacity: 0.1; background-size: 350px 350px; }
-        @keyframes animateStars { from { transform: translateY(0px) translateX(0px); } to { transform: translateY(100%) translateX(-150px); } }
+        .stars2 { background-image: inherit; animation: animateStars 60s linear infinite; opacity: 0.15; }
+        .stars3 { background-image: inherit; animation: animateStars 80s linear infinite; opacity: 0.1; }
+        @keyframes animateStars { from { transform: translateY(0px); } to { transform: translateY(100%); } }
         .dark .stars, .dark .stars2, .dark .stars3 { opacity: 0.8; }
 
-        /* Ефекти кнопки та скла */
-        @keyframes shine { 100% { left: 125%; } }
-        .flash-button { position: relative; overflow: hidden; }
-        .flash-button::after {
-            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg); transition: none;
+        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        .dark .glass-panel { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); }
+
+        /* Кастомний календар */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
+            cursor: pointer;
         }
-        .flash-button:hover::after { animation: shine 0.75s ease-in-out; }
-        .glass-panel { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(5px); }
-        .dark .glass-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px); }
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
     </style>
 </head>
 <body class="bg-[#F1F5F9] dark:bg-slate-950 text-slate-900 dark:text-slate-100 h-screen overflow-hidden flex transition-colors duration-300">
 
     <div id="starfield"><div class="stars"></div><div class="stars2"></div><div class="stars3"></div></div>
 
-    <nav class="w-20 lg:w-72 glass-panel border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-10">
-        <div class="p-6 flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/50">
+    <!-- Ліва панель (Навігація та Розклад) -->
+    <nav class="w-20 lg:w-80 glass-panel border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-10">
+        <div class="p-5 flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/50">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-600 dark:bg-accentDark rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 dark:shadow-[0_0_15px_rgba(188,131,230,0.3)] transition-all-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                <div class="w-10 h-10 bg-blue-600 dark:bg-accentDark rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                 </div>
-                <span class="text-xl font-bold tracking-tight hidden lg:block text-blue-600 dark:text-accentDark transition-colors">UniNexus</span>
+                <span class="text-lg font-bold tracking-tight hidden lg:block text-blue-600 dark:text-accentDark">UniNexus</span>
             </div>
-            <button id="theme-toggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><span id="theme-icon">🌙</span></button>
+            <button id="theme-toggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                <span id="theme-icon">🌙</span>
+            </button>
         </div>
 
-        <div class="flex-grow px-4 py-6 flex flex-col overflow-y-auto">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-4">Сьогоднішні пари</p>
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800/50 hidden lg:block">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Обрати дату</label>
+            <input type="date" id="date-picker" 
+                class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-accentDark transition-all">
+        </div>
+
+        <div class="flex-grow px-3 py-4 flex flex-col overflow-y-auto custom-scrollbar">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-3">Розклад на день</p>
             
-            <div id="schedule-container" class="space-y-3 flex-grow">
-                <button class="w-full text-left p-4 rounded-2xl bg-blue-50 dark:bg-accentDark/10 border border-blue-100 dark:border-accentDark/30 group transition-all-300 hover:shadow-md hover:scale-[1.02] transform">
-                    <p class="text-xs font-bold text-blue-500 dark:text-accentDark mb-1">08:30 - 10:00</p>
-                    <h4 class="font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-accentDark transition">Вища Математика</h4>
-                    <div class="flex gap-2 mt-2">
-                        <span class="w-2 h-2 rounded-full bg-green-400"></span>
-                        <span class="text-[10px] text-slate-500 dark:text-slate-400">Лекція (Ауд. 201)</span>
-                    </div>
-                </button>
+            <div id="schedule-container" class="space-y-2 flex-grow">
+                <!-- Сюди рендериться розклад -->
+                <div class="text-center py-10 text-slate-400 text-xs">Оберіть групу та дату</div>
             </div>
         </div>
     </nav>
 
+    <!-- Основна частина -->
     <main class="flex-grow flex flex-col overflow-hidden z-10">
         <div class="p-6">
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-accentDark dark:to-purple-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden group transition-all duration-500 hover:shadow-2xl hover:shadow-blue-200 dark:hover:shadow-accentDark/20 cursor-pointer">
-                <h3 class="font-bold text-lg flex items-center gap-2 relative z-10"><span class="animate-pulse">✨</span> AI Insight</h3>
-                <p class="text-blue-100 dark:text-white/90 text-sm mt-1 relative z-10" id="ai-insight-text">Очікую на розклад для аналізу...</p>
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-accentDark dark:to-purple-900 rounded-3xl p-5 text-white shadow-xl relative overflow-hidden group transition-all">
+                <h3 class="font-bold text-base flex items-center gap-2 relative z-10">✨ AI Insight</h3>
+                <p class="text-blue-100 dark:text-white/90 text-xs mt-1 relative z-10" id="ai-insight-text">Оберіть дату для аналізу навантаження...</p>
             </div>
         </div>
 
         <div class="flex-grow px-6 pb-6 flex flex-col gap-6 overflow-hidden">
-            <div class="glass-panel border border-slate-200 dark:border-slate-800 rounded-[32px] flex-grow flex flex-col shadow-sm overflow-hidden transition-colors">
-                <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
-                    <h2 class="text-2xl font-black text-slate-800 dark:text-white italic">Робоча область</h2>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Обери пару зліва для взаємодії</p>
+            <div class="glass-panel border border-slate-200 dark:border-slate-800 rounded-[32px] flex-grow flex flex-col shadow-sm overflow-hidden">
+                <div class="px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                    <h2 class="text-xl font-black text-slate-800 dark:text-white italic uppercase tracking-tight">Робоча область</h2>
                 </div>
                 
-                <div class="p-8 flex-grow overflow-y-auto">
-                    </div>
+                <div class="p-8 flex-grow overflow-y-auto text-slate-400 text-center flex items-center justify-center">
+                    Контент обраної пари з'явиться тут
+                </div>
 
-                <div class="p-6 glass-panel/50 border-t border-slate-100 dark:border-slate-800 mt-auto">
-                    <div class="relative">
-                        <input type="text" placeholder="Запитай AI про лекцію..." class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 pl-6 pr-32 py-4 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500 dark:focus:ring-accentDark outline-none dark:text-white transition-all">
-                        <button class="absolute right-2 top-2 bottom-2 bg-blue-600 dark:bg-accentDark text-white dark:text-slate-950 px-6 rounded-xl font-bold text-sm shadow-lg transition-all-300 flash-button hover:scale-105 transform active:scale-95">Запитати</button>
+                <div class="p-5 glass-panel/50 border-t border-slate-100 dark:border-slate-800 mt-auto">
+                    <div class="relative max-w-4xl mx-auto">
+                        <input type="text" placeholder="Запитай AI про лекцію..." class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 pl-6 pr-32 py-3.5 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500 dark:focus:ring-accentDark outline-none dark:text-white transition-all">
+                        <button class="absolute right-2 top-2 bottom-2 bg-blue-600 dark:bg-accentDark text-white dark:text-slate-950 px-5 rounded-xl font-bold text-xs shadow-lg hover:scale-105 transition-all active:scale-95">Запитати</button>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <aside class="w-80 glass-panel border-l border-slate-200 dark:border-slate-800 hidden xl:flex flex-col p-8 transition-colors duration-300 overflow-y-auto z-10">
-        <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-slate-900 dark:bg-accentDark rounded-[2rem] mx-auto mb-4 flex items-center justify-center text-white dark:text-slate-950 text-2xl font-black shadow-xl hover:rotate-6 hover:scale-110 transform cursor-pointer transition-all-300">UN</div>
-            <h3 class="font-bold text-lg dark:text-white italic">Олександр Несус</h3>
+    <!-- Права панель (Профіль) -->
+    <aside class="w-72 glass-panel border-l border-slate-200 dark:border-slate-800 hidden xl:flex flex-col p-6 transition-colors duration-300 z-10">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-slate-900 dark:bg-accentDark rounded-2xl mx-auto mb-3 flex items-center justify-center text-white dark:text-slate-950 text-xl font-black shadow-lg">UN</div>
+            <h3 class="font-bold text-sm dark:text-white italic">Олександр Несус</h3>
             
-            <div class="mt-4 relative">
-                <input type="text" id="group-input" placeholder="Формат: ІПЗ-23-1" 
-                    class="w-full text-center bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 dark:focus:ring-accentDark outline-none uppercase placeholder:normal-case">
-                <button id="fetch-schedule-btn" class="mt-2 w-full bg-slate-800 dark:bg-slate-700 text-white text-xs font-bold py-2 rounded-xl hover:bg-slate-700 dark:hover:bg-slate-600 transition">
-                    Завантажити розклад
+            <div class="mt-4 space-y-2">
+                <input type="text" id="group-input" placeholder="Група (напр. ІПЗ-23-1)" 
+                    class="w-full text-center bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-xs font-bold outline-none uppercase focus:ring-2 focus:ring-blue-500 dark:focus:ring-accentDark">
+                <button id="fetch-schedule-btn" class="w-full bg-slate-800 dark:bg-slate-700 text-white text-[10px] font-bold py-2.5 rounded-xl hover:bg-slate-700 transition uppercase tracking-wider">
+                    Оновити дані
                 </button>
             </div>
         </div>
 
-        <div class="space-y-8 flex-grow">
-            <div class="p-6 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 rounded-3xl border border-blue-100 dark:border-slate-700 transition-all-300 hover:shadow-md cursor-pointer">
-                <h4 class="text-sm font-bold text-blue-900 dark:text-accentDark mb-2 italic">Колективний розум</h4>
-                <p class="text-[10px] text-blue-700/70 dark:text-slate-400">Твої одногрупники ще нічого не завантажили.</p>
+        <div class="p-4 bg-blue-50/50 dark:bg-slate-900/50 rounded-2xl border border-blue-100 dark:border-slate-800">
+            <h4 class="text-[10px] font-bold text-blue-900 dark:text-accentDark mb-2 uppercase">Статус системи</h4>
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-[10px] text-slate-500">Синхронізація активна</span>
             </div>
         </div>
     </aside>
 
-    <script>
-    // --- Логіка перемикання теми ---
+<script>
+    // --- ТЕМА ---
     const themeToggle = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
-    const htmlElement = document.documentElement;
-
-    // Функція для оновлення іконки
-    const updateIcon = (isDark) => {
-        themeIcon.innerText = isDark ? '☀️' : '🌙';
+    const html = document.documentElement;
+    const updateTheme = (isDark) => {
+        html.classList.toggle('dark', isDark);
+        document.getElementById('theme-icon').innerText = isDark ? '☀️' : '🌙';
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
     };
+    themeToggle.addEventListener('click', () => updateTheme(!html.classList.contains('dark')));
+    if (localStorage.getItem('theme') === 'dark') updateTheme(true);
 
-    // Перевірка збереженої теми при завантаженні
-    if (localStorage.getItem('theme') === 'dark' || 
-        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        htmlElement.classList.add('dark');
-        htmlElement.classList.remove('light');
-        updateIcon(true);
-    } else {
-        htmlElement.classList.add('light');
-        htmlElement.classList.remove('dark');
-        updateIcon(false);
+    // --- РОЗКЛАД ---
+    const datePicker = document.getElementById('date-picker');
+    const groupInput = document.getElementById('group-input');
+    const fetchBtn = document.getElementById('fetch-schedule-btn');
+    const scheduleContainer = document.getElementById('schedule-container');
+
+    let cachedSchedule = null;
+
+    function formatServerKey(dateStr) {
+        const d = new Date(dateStr);
+        const daysUk = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}.${month}.${year} ${daysUk[d.getDay()]}`;
     }
 
-    themeToggle.addEventListener('click', () => {
-        if (htmlElement.classList.contains('dark')) {
-            htmlElement.classList.remove('dark');
-            htmlElement.classList.add('light');
-            localStorage.setItem('theme', 'light');
-            updateIcon(false);
-        } else {
-            htmlElement.classList.remove('light');
-            htmlElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-            updateIcon(true);
-        }
-    });
+    // АГРЕСИВНЕ ГРУПУВАННЯ ЗА ЧАСОМ
+    function processLessons(lessons) {
+        if (!lessons || !Array.isArray(lessons)) return [];
+        
+        const timeGroups = {};
 
-    // --- Логіка завантаження розкладу (ваш існуючий код) ---
-    const fetchBtn = document.getElementById("fetch-schedule-btn");
-    const scheduleContainer = document.getElementById("schedule-container");
-    const groupInput = document.getElementById("group-input");
+        lessons.forEach(lesson => {
+            const time = lesson.time ? lesson.time.trim() : "00:00";
+            if (!timeGroups[time]) {
+                timeGroups[time] = {
+                    time: time,
+                    subjects: [],
+                    rooms: new Set(),
+                    type: lesson.type || "Пара"
+                };
+            }
+            
+            // Додаємо назву, якщо такої ще немає в цій групі (уникаємо дублів)
+            const cleanSubject = lesson.subject.trim();
+            if (!timeGroups[time].subjects.includes(cleanSubject)) {
+                timeGroups[time].subjects.push(cleanSubject);
+            }
 
-    fetchBtn.addEventListener("click", async () => {
+            // Додаємо аудиторію
+            if (lesson.room && lesson.room !== "Дистанційно") {
+                timeGroups[time].rooms.add(lesson.room.trim());
+            }
+        });
+
+        // Перетворюємо об'єкт груп назад у масив
+        return Object.values(timeGroups).sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    async function loadSchedule() {
         const group = groupInput.value.trim();
-        if (!group) {
-            alert("Введи групу");
-            return;
-        }
-
-        scheduleContainer.innerHTML = "Завантаження...";
-
+        if (!group) return alert("Введіть групу");
+        scheduleContainer.innerHTML = `<div class="text-center py-10 animate-pulse text-xs">Завантаження...</div>`;
         try {
             const res = await fetch(`/api/schedule/${group}`);
             const data = await res.json();
-            scheduleContainer.innerHTML = "";
-            const days = Object.keys(data);
-
-            if (days.length === 0) {
-                scheduleContainer.innerHTML = "Немає даних";
-                return;
-            }
-
-            const firstDay = data[days[0]];
-            firstDay.forEach(lesson => {
-                const div = document.createElement("div");
-                div.className = "w-full text-left p-4 rounded-2xl bg-blue-50 dark:bg-accentDark/10 border border-blue-100 dark:border-accentDark/30 group transition-all-300 hover:shadow-md hover:scale-[1.02] transform mb-3";
-                div.innerHTML = `
-                    <p class="text-xs font-bold text-blue-500 dark:text-accentDark mb-1">${lesson.time}</p>
-                    <h4 class="font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-accentDark transition">${lesson.subject}</h4>
-                    <div class="flex gap-2 mt-2">
-                        <span class="w-2 h-2 rounded-full bg-green-400"></span>
-                        <span class="text-[10px] text-slate-500 dark:text-slate-400">${lesson.room || "Дистанційно"}</span>
-                    </div>
-                `;
-                scheduleContainer.appendChild(div);
-            });
+            cachedSchedule = data;
+            renderDay(datePicker.value);
         } catch (e) {
-            scheduleContainer.innerHTML = "Помилка завантаження";
+            scheduleContainer.innerHTML = `<div class="text-center py-10 text-red-400 text-xs">Помилка API</div>`;
         }
-    });
+    }
 
+    function renderDay(selectedDate) {
+        if (!cachedSchedule) return;
+        const targetKey = formatServerKey(selectedDate);
+        const rawData = cachedSchedule[targetKey] || [];
+        
+        const groupedData = processLessons(rawData);
 
+        scheduleContainer.innerHTML = "";
+
+        if (groupedData.length === 0) {
+            scheduleContainer.innerHTML = `<div class="text-center py-10 opacity-60"><div class="text-2xl mb-2">☕</div><p class="text-[10px] text-slate-400 uppercase font-bold">Пар немає</p></div>`;
+            return;
+        }
+
+        groupedData.forEach(group => {
+            const card = document.createElement("div");
+            card.className = "w-full text-left p-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 group transition-all hover:border-blue-300 dark:hover:border-accentDark/50 mb-2 shadow-sm";
+            
+            // Об'єднуємо всі фрагменти назв у один текст
+            const fullSubject = group.subjects.join(" ");
+            // Об'єднуємо аудиторії
+            const roomsList = group.rooms.size > 0 ? Array.from(group.rooms).join(", ") : "Дистанційно";
+
+            card.innerHTML = `
+                <div class="flex justify-between items-center mb-1">
+                    <p class="text-[10px] font-bold text-blue-600 dark:text-accentDark">${group.time}</p>
+                    <span class="text-[8px] uppercase px-1.5 py-0.5 rounded bg-blue-50 dark:bg-slate-800 text-blue-500 dark:text-accentDark/70 font-bold">Пара</span>
+                </div>
+                <h4 class="font-semibold text-[11px] text-slate-800 dark:text-slate-100 leading-snug break-words">
+                    ${fullSubject}
+                </h4>
+                <div class="flex items-center gap-1.5 mt-1.5">
+                    <div class="w-1 h-1 rounded-full bg-green-500"></div>
+                    <p class="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate">${roomsList}</p>
+                </div>
+            `;
+            scheduleContainer.appendChild(card);
+        });
+
+        // Оновлення AI Insight
+        document.getElementById('ai-insight-text').innerText = `На цей день знайдено ${groupedData.length} часових слотів з парами.`;
+    }
+
+    datePicker.value = new Date().toISOString().split('T')[0];
+    fetchBtn.addEventListener('click', loadSchedule);
+    datePicker.addEventListener('change', () => renderDay(datePicker.value));
 </script>
 </body>
 </html>
