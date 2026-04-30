@@ -1,5 +1,6 @@
 import os
 import requests
+from dotenv import load_dotenv 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -18,10 +19,11 @@ retriever = None
 # =========================
 # CONFIG
 # =========================
-XAI_API_KEY = "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"
+XAI_API_KEY = os.getenv("XAI_API_KEY") 
 
 if not XAI_API_KEY:
-    print("❌ Set XAI_API_KEY in environment")
+    # Краще викидати помилку одразу, щоб сервер не працював вхолосту
+    raise ValueError("❌ Помилка: XAI_API_KEY не знайдено у файлі .env")
 
 app = FastAPI(title="UniNexus Grok Backend")
 
@@ -103,7 +105,8 @@ async def upload_document(file: UploadFile = File(...)):
             chunk_size=1000,
             chunk_overlap=200,
             separators=["\n\n", "\n", ".", " ", ""],
-            add_start_index=True
+            add_start_index=Truels
+            
         )
 
         chunks = splitter.split_documents(docs)
