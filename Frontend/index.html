@@ -143,9 +143,9 @@
                 <span class="text-[10px] text-slate-500 font-bold uppercase">RAG Engine Active</span>
             </div>
         </div>
-         <button id="clear-db-btn" class="w-full mt-2 border border-red-500/50 text-red-500 text-[10px] font-bold py-2 rounded-xl hover:bg-red-500/10 transition uppercase">
+         <!-- <button id="clear-db-btn" class="w-full mt-2 border border-red-500/50 text-red-500 text-[10px] font-bold py-2 rounded-xl hover:bg-red-500/10 transition uppercase">
     🗑️ Очистити пам'ять
-</button>
+</button> -->
     </aside>
 
 <script>
@@ -205,7 +205,7 @@
         if (!group) return;
         scheduleContainer.innerHTML = `<div class="text-center py-10 animate-pulse text-[10px] font-bold uppercase tracking-widest text-blue-500">Синхронізація...</div>`;
         try {
-            const res = await fetch(`http://localhost:3000/api/schedule/${group}`);
+            const res = await fetch(`${API_BASE}/api/schedule/${group}`);
             cachedSchedule = await res.json();
             renderDay(datePicker.value);
         } catch (e) { scheduleContainer.innerHTML = `<div class="text-xs text-red-400 text-center">Помилка API</div>`; }
