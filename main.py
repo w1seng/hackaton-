@@ -53,33 +53,7 @@ class ChatRequest(BaseModel):
 # =========================
 # CORE FUNCTIONS
 # =========================
-def classify_subject_by_ai(file_path: str) -> str:
-    """Аналізує першу сторінку PDF і визначає назву навчального предмета."""
-    try:
-        loader = PyPDFLoader(file_path)
-        # Завантажуємо лише першу сторінку для економії часу та токенів
-        pages = loader.load_and_split()
-        first_page_text = pages[0].page_content[:1000] # беремо перші 1000 символів
 
-        classifier_prompt = f"""Проаналізуй текст першої сторінки навчального документа і визнач назву навчальної дисципліни (предмета).
-Відповідь має бути ОДНИМ словом у називному відмінку українською мовою (наприклад: Математика, Фізика, Програмування, Філософія).
-Якщо предмет важко визначити, напиши "Загальне".
-
-ТЕКСТ:
-{first_page_text}
-
-ПРЕДМЕТ:"""
-
-        messages = [{"role": "user", "content": classifier_prompt}]
-        subject = call_groq(messages, model="llama-3.1-8b-instant")
-        
-        # Очищаємо назву від зайвих символів
-        clean_subject = subject.strip().replace(".", "").replace('"', '').title()
-        return clean_subject
-    except Exception as e:
-        print(f"❌ Помилка класифікації: {e}")
-        return "Загальне"
-    
 def call_groq(messages, model="llama-3.3-70b-versatile"): # Використовуємо легшу модель, щоб не ловити ліміти
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
@@ -112,44 +86,49 @@ def refine_query_for_search(query: str) -> str:
 async def startup_event():
     global vector_store, loaded_docs_names
     
-    # 1. Завантажуємо існуючу базу
+    # 1. Завантажуємо існуючу векторну базу з диска
     if os.path.exists(DB_FAISS_PATH):
         vector_store = FAISS.load_local(DB_FAISS_PATH, embeddings, allow_dangerous_deserialization=True)
         for doc_id in vector_store.docstore._dict:
             source = vector_store.docstore._dict[doc_id].metadata.get("source")
             if source: loaded_docs_names.add(source)
 
-    # 2. Скануємо підпапки предметів
-    all_chunks = []
-    
-    # Перевіряємо кожну папку в knowledge_base
-    for subject_name in os.listdir(KNOWLEDGE_BASE_DIR):
-        subject_path = os.path.join(KNOWLEDGE_BASE_DIR, subject_name)
-        
-        if os.path.isdir(subject_path):
-            files = [f for f in os.listdir(subject_path) if f.endswith('.pdf')]
-            for file_name in files:
-                if file_name not in loaded_docs_names:
-                    print(f"⏳ Новий файл у предметі [{subject_name}]: {file_name}")
-                    file_path = os.path.join(subject_path, file_name)
-                    
-                    loader = PyPDFLoader(file_path)
-                    docs = loader.load()
-                    for d in docs: 
-                        d.metadata["source"] = file_name
-                        d.metadata["subject"] = subject_name # ДОДАЄМО ПРЕДМЕТ
-                    
-                    splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
-                    all_chunks.extend(splitter.split_documents(docs))
-                    loaded_docs_names.add(file_name)
+    # 2. Синхронізуємо папку knowledge_base з базою
+    all_files = [f for f in os.listdir(KNOWLEDGE_BASE_DIR) if f.endswith('.pdf')]
+    new_files = [f for f in all_files if f not in loaded_docs_names]
 
-    if all_chunks:
-        if vector_store is None:
-            vector_store = FAISS.from_documents(all_chunks, embeddings)
-        else:
-            vector_store.add_documents(all_chunks)
-        vector_store.save_local(DB_FAISS_PATH)
-        print("✅ База знань по предметах оновлена!")
+    if new_files:
+        print(f"⏳ Знайдено нові файли ({len(new_files)}). Додаю до бази...")
+        all_chunks = []
+        for file_name in new_files:
+            file_path = os.path.join(KNOWLEDGE_BASE_DIR, file_name)
+            loader = PyPDFLoader(file_path)
+            docs = loader.load()
+            for d in docs: d.metadata["source"] = file_name
+            
+            splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+            all_chunks.extend(splitter.split_documents(docs))
+            loaded_docs_names.add(file_name)
+
+        if all_chunks:
+            if vector_store is None:
+                vector_store = FAISS.from_documents(all_chunks, embeddings)
+            else:
+                vector_store.add_documents(all_chunks)
+            vector_store.save_local(DB_FAISS_PATH)
+            print("✅ База оновлена і збережена на диск!")
+
+def route_query(query: str):
+    """Агент-диспетчер: вирішує, чи потрібні документи."""
+    router_prompt = f"""Ти — диспетчер запитів. Виріши, чи потребує питання пошуку в базі знань, чи це просто спілкування.
+ПИТАННЯ: "{query}"
+Відповідай ТІЛЬКИ одним словом:
+- DOCS: якщо питання стосується навчання, лекцій, конспектів.
+- GENERAL: якщо це привітання, жарт, загальне питання.
+ВІДПОВІДЬ:"""
+    messages = [{"role": "user", "content": router_prompt}]
+    decision = call_groq(messages, model="llama-3.3-70b-versatile").strip().upper()
+    return "DOCS" if "DOCS" in decision else "GENERAL"
 
 # =========================
 # API ENDPOINTS
@@ -159,30 +138,16 @@ async def startup_event():
 async def upload_document(file: UploadFile = File(...)):
     global vector_store, loaded_docs_names
     
-    # 1. Тимчасово зберігаємо файл, щоб AI міг його прочитати
-    temp_path = os.path.join(KNOWLEDGE_BASE_DIR, f"temp_{file.filename}")
-    with open(temp_path, "wb") as buffer:
+    file_path = os.path.join(KNOWLEDGE_BASE_DIR, file.filename)
+    
+    # Зберігаємо файл у постійну папку
+    with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
     try:
-        # 2. AI визначає предмет
-        subject = classify_subject_by_ai(temp_path)
-        print(f"📦 AI визначив предмет для '{file.filename}': {subject}")
-
-        # 3. Створюємо динамічну папку предмета
-        subject_dir = os.path.join(KNOWLEDGE_BASE_DIR, subject)
-        os.makedirs(subject_dir, exist_ok=True)
-        
-        # 4. Переносимо файл з темп-папки в папку предмета
-        final_path = os.path.join(subject_dir, file.filename)
-        shutil.move(temp_path, final_path)
-        
-        # 5. Індексуємо файл для RAG
-        loader = PyPDFLoader(final_path)
+        loader = PyPDFLoader(file_path)
         docs = loader.load()
-        for doc in docs: 
-            doc.metadata["source"] = file.filename
-            doc.metadata["subject"] = subject
+        for doc in docs: doc.metadata["source"] = file.filename
         
         splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
         chunks = splitter.split_documents(docs)
@@ -194,15 +159,9 @@ async def upload_document(file: UploadFile = File(...)):
         
         vector_store.save_local(DB_FAISS_PATH)
         loaded_docs_names.add(file.filename)
-        
-        return {
-            "message": "Файл успішно класифіковано та додано",
-            "detected_subject": subject,
-            "file": file.filename
-        }
-        
+        return {"message": "Success", "extracted_title": file.filename, "all_docs": list(loaded_docs_names)}
     except Exception as e:
-        if os.path.exists(temp_path): os.remove(temp_path)
+        if os.path.exists(file_path): os.remove(file_path)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/ask")
@@ -210,37 +169,42 @@ async def ask_ai(request: ChatRequest):
     global vector_store
     
     decision = route_query(request.query)
+    print(f"🤖 Агент прийняв рішення: {decision}")
 
     if decision == "DOCS" and vector_store:
+        # --- НОВА ЛОГІКА ---
+        # 1. Покращуємо запит для пошуку
         search_query = refine_query_for_search(request.query)
+        
+        # 2. Шукаємо по покращеному запиту
         docs = vector_store.similarity_search(search_query, k=4)
+        # --------------------
 
-        # Формуємо контекст із зазначенням ПРЕДМЕТА
-        context_parts = []
-        found_subjects = set()
-        for d in docs:
-            subj = d.metadata.get('subject', 'Загальне')
-            src = d.metadata.get('source', 'Невідомий')
-            found_subjects.add(subj)
-            context_parts.append(f"[ПРЕДМЕТ: {subj} | ФАЙЛ: {src}]\n{d.page_content}")
-            
-        context = "\n\n".join(context_parts)
+        if not docs:
+            context = "Контекст порожній. Нічого не знайдено."
+        else:
+            context = "\n\n".join([f"[Файл: {d.metadata.get('source', 'Невідомий')}]\n{d.page_content}" for d in docs])
 
-        system_prompt = f"""Ти — академічний асистент UniNexus. 
-Ти знайшов інформацію у матеріалах з таких предметів: {', '.join(found_subjects)}.
+        system_prompt = f"""Ти — суворий AI-асистент UniNexus. 
+Твоя задача — відповідати виключно на основі наданого контексту.
 
-Відповідай виключно на основі КОНТЕКСТУ. 
-Якщо питання стосується одного предмета, а інформація знайдена в іншому — попередь про це.
-Обов'язково вказуй [Предмет | Файл].
+ПРАВИЛА:
+1. Проаналізуй КОНТЕКСТ. Чи містить він відповідь на запит: "{request.query}"?
+2. ЯКЩО ТАК: Дай чітку відповідь, використовуючи ТІЛЬКИ інформацію з КОНТЕКСТУ.
+3. ЯКЩО НІ: (контекст нерелевантний або порожній) — Не вигадуй. Відповідай: "На жаль, у моїй базі знань немає інформації на тему '{request.query}'. Будь ласка, завантажте відповідний PDF."
+4. ЗАБОРОНЕНО: Використовувати свої загальні знання.
 
-КОНТЕКСТ:
+КОНТЕКСТ З ДОКУМЕНТІВ:
 {context}
 """
     else:
-        system_prompt = "Ти — дружній асистент UniNexus. Спілкуйся на загальні теми."
+        # ПРОСТО СПІЛКУЄМОСЯ
+        system_prompt = "Ти — дружній AI-асистент UniNexus. Спілкуйся на загальні теми."
 
-    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": request.query}]
-    answer = call_groq(messages)
+    messages = [{"role": "system", "content": system_prompt}]
+    messages.append({"role": "user", "content": request.query})
+    
+    answer = call_groq(messages, model="llama-3.3-70b-versatile")
     return {"answer": answer, "agent_decision": decision}
 
 @app.get("/api/status")
