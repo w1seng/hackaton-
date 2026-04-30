@@ -1,7 +1,7 @@
 # <img src="https://raw.githubusercontent.com/Tarik02/Tarik02/main/assets/sparkles.gif" width="30"> UniNexus AI: Smart Student Ecosystem
 
 <p align="center">
-  <img src="https://your-image-url-here.com/banner.png" alt="UniNexus Banner" width="800">
+  <img src="https://private-user-images.githubusercontent.com/206721479/585964283-9669128a-b149-4439-ad9f-9533bba6d607.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3Nzc1NDY0MjMsIm5iZiI6MTc3NzU0NjEyMywicGF0aCI6Ii8yMDY3MjE0NzkvNTg1OTY0MjgzLTk2NjkxMjhhLWIxNDktNDQzOS1hZDlmLTk1MzNiYmE2ZDYwNy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwNDMwJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDQzMFQxMDQ4NDNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iNDUyYjYzNWFlOWY2ODRlZGUzZmQwYzBlNDMzZjkyZDU4ZjgwZjIzN2MxZDRjNWY5MzhmOTQzY2I1MzI2MGZjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ._tifhuwyIB2OPurqiWd86bXLVchMrIsR25WMsOaGcAA" alt="UniNexus Banner" width="800">
 </p>
 
 <p align="center">
