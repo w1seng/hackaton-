@@ -24,7 +24,41 @@ XAI_API_KEY = os.getenv("XAI_API_KEY")
 if not XAI_API_KEY:
     # Краще викидати помилку одразу, щоб сервер не працював вхолосту
     raise ValueError("❌ Помилка: XAI_API_KEY не знайдено у файлі .env")
+KNOWLEDGE_BASE_DIR = "./knowledge_base"
 
+def load_all_documents():
+    global vector_store, retriever
+    
+    if not os.path.exists(KNOWLEDGE_BASE_DIR):
+        os.makedirs(KNOWLEDGE_BASE_DIR)
+        print(f"📁 Папка {KNOWLEDGE_BASE_DIR} створена.")
+        return
+
+    all_docs = []
+    pdf_files = [f for f in os.listdir(KNOWLEDGE_BASE_DIR) if f.endswith('.pdf')]
+    
+    if not pdf_files:
+        print("⚠️ У папці knowledge_base немає PDF.")
+        return
+
+    print(f"📚 Індексація {len(pdf_files)} файлів...")
+    for file_name in pdf_files:
+        try:
+            loader = PyPDFLoader(os.path.join(KNOWLEDGE_BASE_DIR, file_name))
+            docs = loader.load()
+            for doc in docs:
+                doc.metadata["file_name"] = file_name
+            all_docs.extend(docs)
+        except Exception as e:
+            print(f"❌ Помилка файлу {file_name}: {e}")
+
+    if all_docs:
+        splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
+        chunks = splitter.split_documents(all_docs)
+        embeddings = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-small")
+        vector_store = FAISS.from_documents(chunks, embeddings)
+        retriever = vector_store.as_retriever(search_kwargs={"k": 4})
+        print("✅ База знань готова!")
 app = FastAPI(title="UniNexus Grok Backend")
 
 app.add_middleware(
@@ -34,7 +68,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+@app.on_event("startup")
+async def startup_event():
+    load_all_documents()
 #
 # =========================
 # MODELS
@@ -148,36 +184,30 @@ async def upload_document(file: UploadFile = File(...)):
 @app.post("/api/ask")
 async def ask_ai(request: ChatRequest):
     global retriever
+    if not retriever:
+        return {"answer": "База знань порожня. Покладіть PDF у папку knowledge_base."}
 
-    context = "Empty knowledge base."
+    docs = retriever.invoke(request.query)
+    context = ""
+    for d in docs:
+        fname = d.metadata.get("file_name", "Документ")
+        page = d.metadata.get("page", 0) + 1
+        context += f"\n[Джерело: {fname}, стор. {page}]\n{d.page_content}\n"
 
-    if retriever:
-        docs = retriever.invoke(request.query)
-        context = "\n\n".join([d.page_content for d in docs])
-
-    messages = [
-        {
-            "role": "system",
-            "content": f"""
-You are a smart student assistant.
-
-Knowledge base:
+    system_prompt = f"""
+Ти — інтелектуальний асистент UniNexus. 
+Давай відповіді ТІЛЬКИ на основі наданого контексту. 
+Обов'язково вказуй назву файлу та номер сторінки у відповіді.
+КОНТЕКСТ:
 {context}
-
-Answer clearly and structured.
 """
-        },
-        {
-            "role": "user",
-            "content": request.query
-        }
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": request.query}
     ]
-
-    try:
-        answer = call_grok(messages)
-        return {"answer": answer}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    
+    answer = call_grok(messages)
+    return {"answer": answer}
 
 
 # =========================
