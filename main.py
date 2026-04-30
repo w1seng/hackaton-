@@ -4,17 +4,21 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+import shutil # Додай це нагорі до імпортів
+from fastapi import FastAPI, HTTPException, UploadFile, File # Додай UploadFile, File
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+vector_store = None
+retriever = None
 
 # =========================
 # CONFIG
 # =========================
-XAI_API_KEY = os.environ["XAI_API_KEY"]
+XAI_API_KEY = "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"
 
 if not XAI_API_KEY:
     print("❌ Set XAI_API_KEY in environment")
@@ -50,40 +54,6 @@ vector_store = None
 retriever = None
 
 
-# =========================
-# INIT RAG (LOCAL EMBEDDINGS)
-# =========================
-@app.on_event("startup")
-def init_rag():
-    global vector_store, retriever
-
-    pdf_path = "notes.pdf"
-
-    if not os.path.exists(pdf_path):
-        print("⚠️ notes.pdf not found")
-        return
-
-    print("📚 Loading PDF...")
-
-    loader = PyPDFLoader(pdf_path)
-    docs = loader.load()
-
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200
-    )
-
-    chunks = splitter.split_documents(docs)
-
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
-
-    vector_store = FAISS.from_documents(chunks, embeddings)
-    retriever = vector_store.as_retriever(k=3)
-
-    print("✅ RAG READY")
-
 
 # =========================
 # GROK CALL (xAI API)
@@ -117,6 +87,61 @@ def call_grok(messages):
 # =========================
 # ASK AI
 # =========================
+@app.post("/api/upload")
+async def upload_document(file: UploadFile = File(...)):
+    global vector_store, retriever
+    
+    temp_file_path = f"temp_{file.filename}"
+    with open(temp_file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    try:
+        loader = PyPDFLoader(temp_file_path)
+        docs = loader.load()
+
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200,
+            separators=["\n\n", "\n", ".", " ", ""],
+            add_start_index=True
+        )
+
+        chunks = splitter.split_documents(docs)
+        
+        # --- МАГІЯ: ВИЗНАЧЕННЯ НАЗВИ ЧЕРЕЗ GROQ ---
+        # Беремо перші 1000 символів документу (титулку)
+        first_page_content = chunks[0].page_content[:1000]
+        
+        title_messages = [
+            {
+                "role": "system", 
+                "content": "Ти — асистент UniNexus. Прочитай текст титульної сторінки та витягни коротку офіційну назву роботи або предмету (макс 3-5 слів) українською мовою. Поверни ТІЛЬКИ назву."
+            },
+            {"role": "user", "content": first_page_content}
+        ]
+        
+        # Викликаємо твій Groq
+        nice_title = call_grok(title_messages)
+        nice_title = nice_title.strip().replace('"', '') # чистимо лапки
+        # ------------------------------------------
+
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        vector_store = FAISS.from_documents(chunks, embeddings)
+        retriever = vector_store.as_retriever(search_kwargs={"k": 4})
+
+        # ПОВЕРТАЄМО НАЗВУ ФРОНТЕНДУ
+        return {
+            "message": "Вивчено!", 
+            "extracted_title": nice_title 
+        }
+        
+    except Exception as e:
+        print(f"❌ Помилка RAG: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+            
 @app.post("/api/ask")
 async def ask_ai(request: ChatRequest):
     global retriever
