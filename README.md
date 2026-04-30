@@ -43,13 +43,16 @@
 ## ⚙️ Швидкий запуск
 
 ### 1. Клонування та налаштування
-```bash
+``` bash
 git clone https://github.com/w1seng/hackaton-.git
 cd hackaton-
-2. Встановлення залежностей
+```
+### 2. Встановлення залежностей
+``` bash
 ls
 
 "fastapi`nuvicorn`nrequests`nlangchain`nlangchain-community`nlangchain-text-splitters`nfaiss-cpu`nsentence-transformers`npython-dotenv" | Out-File -FilePath requirements.txt -Encoding utf8
 
 pip install -r requirements.txt
+```
 
