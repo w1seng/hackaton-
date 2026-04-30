@@ -135,58 +135,87 @@
     </aside>
 
     <script>
-const fetchBtn = document.getElementById("fetch-schedule-btn");
-const scheduleContainer = document.getElementById("schedule-container");
-const groupInput = document.getElementById("group-input");
+    // --- Логіка перемикання теми ---
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const htmlElement = document.documentElement;
 
-fetchBtn.addEventListener("click", async () => {
+    // Функція для оновлення іконки
+    const updateIcon = (isDark) => {
+        themeIcon.innerText = isDark ? '☀️' : '🌙';
+    };
 
-    const group = groupInput.value.trim();
-
-    if (!group) {
-        alert("Введи групу");
-        return;
+    // Перевірка збереженої теми при завантаженні
+    if (localStorage.getItem('theme') === 'dark' || 
+        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        htmlElement.classList.add('dark');
+        htmlElement.classList.remove('light');
+        updateIcon(true);
+    } else {
+        htmlElement.classList.add('light');
+        htmlElement.classList.remove('dark');
+        updateIcon(false);
     }
 
-    scheduleContainer.innerHTML = "Завантаження...";
+    themeToggle.addEventListener('click', () => {
+        if (htmlElement.classList.contains('dark')) {
+            htmlElement.classList.remove('dark');
+            htmlElement.classList.add('light');
+            localStorage.setItem('theme', 'light');
+            updateIcon(false);
+        } else {
+            htmlElement.classList.remove('light');
+            htmlElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+            updateIcon(true);
+        }
+    });
 
-    try {
-        const res = await fetch(`/api/schedule/${group}`);
-        const data = await res.json();
+    // --- Логіка завантаження розкладу (ваш існуючий код) ---
+    const fetchBtn = document.getElementById("fetch-schedule-btn");
+    const scheduleContainer = document.getElementById("schedule-container");
+    const groupInput = document.getElementById("group-input");
 
-        scheduleContainer.innerHTML = "";
-
-        const days = Object.keys(data);
-
-        if (days.length === 0) {
-            scheduleContainer.innerHTML = "Немає даних";
+    fetchBtn.addEventListener("click", async () => {
+        const group = groupInput.value.trim();
+        if (!group) {
+            alert("Введи групу");
             return;
         }
 
-        const firstDay = data[days[0]];
+        scheduleContainer.innerHTML = "Завантаження...";
 
-        firstDay.forEach(lesson => {
+        try {
+            const res = await fetch(`/api/schedule/${group}`);
+            const data = await res.json();
+            scheduleContainer.innerHTML = "";
+            const days = Object.keys(data);
 
-            const div = document.createElement("div");
+            if (days.length === 0) {
+                scheduleContainer.innerHTML = "Немає даних";
+                return;
+            }
 
-            div.className =
-              "p-3 mb-2 rounded-xl bg-blue-50 dark:bg-slate-800";
+            const firstDay = data[days[0]];
+            firstDay.forEach(lesson => {
+                const div = document.createElement("div");
+                div.className = "w-full text-left p-4 rounded-2xl bg-blue-50 dark:bg-accentDark/10 border border-blue-100 dark:border-accentDark/30 group transition-all-300 hover:shadow-md hover:scale-[1.02] transform mb-3";
+                div.innerHTML = `
+                    <p class="text-xs font-bold text-blue-500 dark:text-accentDark mb-1">${lesson.time}</p>
+                    <h4 class="font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-accentDark transition">${lesson.subject}</h4>
+                    <div class="flex gap-2 mt-2">
+                        <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400">${lesson.room || "Дистанційно"}</span>
+                    </div>
+                `;
+                scheduleContainer.appendChild(div);
+            });
+        } catch (e) {
+            scheduleContainer.innerHTML = "Помилка завантаження";
+        }
+    });
 
-            div.innerHTML = `
-                <div class="text-xs text-blue-500 font-bold">${lesson.time}</div>
-                <div class="text-sm font-semibold">${lesson.subject}</div>
-                <div class="text-xs text-gray-500">
-                    📍 ${lesson.room || "-"}
-                </div>
-            `;
 
-            scheduleContainer.appendChild(div);
-        });
-
-    } catch (e) {
-        scheduleContainer.innerHTML = "Помилка завантаження";
-    }
-});
 </script>
 </body>
 </html>
