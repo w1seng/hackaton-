@@ -1,9 +1,21 @@
+const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
 const iconv = require("iconv-lite");
-const fs = require("fs");
+const cors = require("cors");
+
+const app = express();
+app.use(cors());
+app.use(express.static(__dirname));
 
 const BASE_URL = "https://dekanat.nung.edu.ua/cgi-bin/timetable.cgi";
+
+/* ================= CACHE ================= */
+const cache = {};
+const CACHE_TIME = 10 * 60 * 1000; // 10 хв
+let lastUpdate = {};
+
+/* ================= HELPERS ================= */
 
 function normalizeText(text) {
   return text.replace(/\s+/g, " ").trim();
@@ -20,84 +32,63 @@ function extractRoom(text) {
 }
 
 function removeRoom(text) {
-  return text
-    .replace(/\s*\d+[.\wА-Яа-яІіЇїЄєҐґA-Za-z]*\.ауд\.?/gi, "")
-    .trim();
+  return text.replace(/\s*\d+[.\wА-Яа-яІіЇїЄєҐґA-Za-z]*\.ауд\.?/gi, "").trim();
 }
 
-function splitMultipleLessons(text) {
+function splitLessons(text) {
   const cleaned = normalizeText(text);
-
-  const lessonStartRegex = /(?=[А-ЯІЇЄҐ][^.!?]*?\((Л|Лаб|Пр)\))/g;
+  const regex = /(?=[А-ЯІЇЄҐ].*?\((Л|Лаб|Пр)\))/g;
 
   return cleaned
-    .split(lessonStartRegex)
+    .split(regex)
     .map(x => x.trim())
-    .filter(x => x.length > 10 && /\((Л|Лаб|Пр)\)/.test(x));
+    .filter(x => x.length > 8);
 }
 
-function parseLesson(text) {
-  text = normalizeText(text);
+/* ================= PARSER ================= */
 
+function parseLesson(text) {
   const room = extractRoom(text);
 
-  const teacherRegex =
-    /(доцент|асистент|професор|ст\.?\s*викладач|викладач)\s+([А-ЯІЇЄҐ][а-яіїєґ']+\s+[А-ЯІЇЄҐ][а-яіїєґ']+\s+[А-ЯІЇЄҐ][а-яіїєґ']+)/i;
-
-  const match = text.match(teacherRegex);
-
-  if (!match) {
-    return {
-      subject: removeRoom(text),
-      teacher: "",
-      room
-    };
-  }
-
-  const teacherFull = match[0];
-  const teacherIndex = match.index;
-
-  const subject = text.slice(0, teacherIndex).trim();
-
   return {
-    subject: removeRoom(subject),
-    teacher: removeRoom(teacherFull),
+    subject: removeRoom(text),
+    teacher: "",
     room
   };
 }
 
-async function getSchedule(groupId = "-2030") {
-  const response = await axios.get(`${BASE_URL}?n=700&group=${groupId}`, {
-    responseType: "arraybuffer"
-  });
+/* ================= FETCH ================= */
+
+async function fetchSchedule(groupId) {
+  const response = await axios.get(
+    `${BASE_URL}?n=700&group=${groupId}`,
+    { responseType: "arraybuffer" }
+  );
 
   const html = iconv.decode(response.data, "win1251");
   const $ = cheerio.load(html);
 
   const result = {};
 
-  $(".col-md-6.col-sm-6.col-xs-12.col-print-6").each((_, dayBlock) => {
-    const date = normalizeText($(dayBlock).find("h4").first().text());
-
+  $(".col-md-6.col-sm-6.col-xs-12.col-print-6").each((_, day) => {
+    const date = normalizeText($(day).find("h4").first().text());
     if (!date) return;
 
     result[date] = [];
 
-    $(dayBlock).find("table tr").each((_, row) => {
+    $(day).find("tr").each((_, row) => {
       const cols = $(row).find("td");
-
       if (cols.length < 3) return;
 
       const time = formatTime($(cols[1]).text());
-      const fullText = normalizeText($(cols[2]).text());
+      const text = normalizeText($(cols[2]).text());
 
-      if (!time || !fullText) return;
+      if (!time || !text) return;
 
-      const lessons = splitMultipleLessons(fullText);
-      const parsedLessons = lessons.length ? lessons : [fullText];
+      const lessons = splitLessons(text);
 
-      parsedLessons.forEach(lessonText => {
-        const parsed = parseLesson(lessonText);
+      lessons.forEach(l => {
+        const parsed = parseLesson(l);
 
         result[date].push({
           time,
@@ -108,26 +99,43 @@ async function getSchedule(groupId = "-2030") {
       });
     });
 
-    if (result[date].length === 0) {
-      delete result[date];
-    }
+    if (result[date].length === 0) delete result[date];
   });
 
   return result;
 }
 
-async function main() {
-  const groupId = "-2030";
+/* ================= API ================= */
 
-  const data = await getSchedule(groupId);
+app.get("/api/schedule/:group", async (req, res) => {
+  const group = req.params.group;
 
-  fs.writeFileSync(
-    "schedule.json",
-    JSON.stringify(data, null, 2),
-    "utf-8"
-  );
+  try {
+    const now = Date.now();
 
-  console.log("✅ schedule.json створено");
-}
+    if (
+      cache[group] &&
+      lastUpdate[group] &&
+      now - lastUpdate[group] < CACHE_TIME
+    ) {
+      return res.json(cache[group]);
+    }
 
-main().catch(console.error);
+    const data = await fetchSchedule(group);
+
+    cache[group] = data;
+    lastUpdate[group] = now;
+
+    res.json(data);
+
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).json({ error: "schedule error" });
+  }
+});
+
+/* ================= START ================= */
+
+app.listen(3000, () => {
+  console.log("Server running: http://localhost:3000");
+});
