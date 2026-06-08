@@ -8,7 +8,6 @@ __pycache__/
 .venv/
 venv/
 env/
-*.json
 # ── Generated data (FAISS index — rebuilt on startup) ─────────────────────────
 vectorstore/
 
