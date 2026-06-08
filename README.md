@@ -1,58 +1,102 @@
-# <img src="https://raw.githubusercontent.com/Tarik02/Tarik02/main/assets/sparkles.gif" width="30"> UniNexus AI: Smart Student Ecosystem
+# UniNexus AI — Smart Student Ecosystem
 
-<p align="center">
-  <img src="https://private-user-images.githubusercontent.com/206721479/585964283-9669128a-b149-4439-ad9f-9533bba6d607.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3Nzc1NDY0MjMsIm5iZiI6MTc3NzU0NjEyMywicGF0aCI6Ii8yMDY3MjE0NzkvNTg1OTY0MjgzLTk2NjkxMjhhLWIxNDktNDQzOS1hZDlmLTk1MzNiYmE2ZDYwNy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwNDMwJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDQzMFQxMDQ4NDNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iNDUyYjYzNWFlOWY2ODRlZGUzZmQwYzBlNDMzZjkyZDU4ZjgwZjIzN2MxZDRjNWY5MzhmOTQzY2I1MzI2MGZjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ._tifhuwyIB2OPurqiWd86bXLVchMrIsR25WMsOaGcAA" alt="UniNexus Banner" width="800">
-</p>
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-005863?style=for-the-badge&logo=fastapi&logoColor=white)
+![Groq AI](https://img.shields.io/badge/Groq_AI-F55036?style=for-the-badge&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-121212?style=for-the-badge&logoColor=white)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-005863?style=for-the-badge&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/Groq_AI-F55036?style=for-the-badge&logo=google-cloud&logoColor=white" />
-  <img src="https://img.shields.io/badge/LangChain-121212?style=for-the-badge&logo=chainlink&logoColor=white" />
-</p>
+## About
 
----
+**UniNexus AI** is an intelligent student assistant that combines a university schedule parser with a RAG-powered AI chatbot. Upload your lecture PDFs and ask the AI questions about the material — it searches through your documents and answers using only the relevant content.
 
-## 🌟 Про проєкт
-**UniNexus AI** — це інтелектуальна система управління навчанням (LMS 2.0), яка перетворює статичний університетський розклад на інтерактивну екосистему. Проєкт автоматично збирає знання всієї групи та надає AI-асистента для допомоги у навчанні.
+## Features
 
-### 🎥 [Демо-відео] | 🌐 [Живий сайт (link)]
+- **Schedule parser** — scrapes the NUNG university timetable and serves it via REST API
+- **RAG knowledge base** — upload PDFs; the backend indexes them with FAISS for fast semantic search
+- **AI assistant (Llama 3.3 via Groq)** — answers questions strictly from uploaded documents
+- **Smart routing** — an agent decides whether to search docs or just chat
+- **Query refinement** — a lightweight model rewrites the search query for better retrieval
 
----
+## Tech stack
 
-## 🚀 Основні функції
-- 📅 **Dynamic Schedule:** Синхронізація з БД університету та миттєві Push-сповіщення про зміни.
-- 🧠 **RAG Knowledge Base:** Завантажуйте PDF та тексту. AI проіндексує їх для швидкого пошуку.
-- 💬 **AI Assistant (Llama 3.3):** Ставте питання по лекціях: *"Що було на 5-й парі?"*.
-- 🤝 **Collective Memory:** Спільний доступ до конспектів та ресурсів для всієї групи.
-- 🌓 **Modern UI/UX:** Темна та світла теми, адаптовані для зручного використання під час занять.
+| Layer | Technologies |
+|---|---|
+| Backend | Python, FastAPI, LangChain, FAISS |
+| AI | Groq API (Llama 3.3 70B), HuggingFace Embeddings |
+| Frontend server | Node.js, Express, Cheerio |
+| Frontend UI | HTML/CSS/JS (served via Express) |
 
----
+## Project structure
 
-## 🛠 Технічний стек
-| Напрям | Технології |
-| :--- | :--- |
-| **Backend** | Python, FastAPI, SQLAlchemy, Supabase |
-| **Frontend** | React, Next.js, Tailwind CSS |
-| **AI / ML** | Groq API, LangChain, FAISS (Vector DB), Sentence Transformers |
-| **DevOps** | GitHub Actions, Docker, Vercel |
-
----
-
-## ⚙️ Швидкий запуск
-
-### 1. Клонування та налаштування
-``` bash
-git clone https://github.com/w1seng/hackaton-.git
-cd hackaton-
 ```
-### 2. Встановлення залежностей
-``` bash
-ls
+uninexus/
+├── main.py              # FastAPI backend (RAG + AI)
+├── requirements.txt
+├── .env.example
+├── knowledge_base/      # Sample lecture PDFs (loaded on startup)
+└── Frontend/
+    ├── index.html       # Main UI
+    ├── shed.js          # Express server (schedule scraper)
+    └── package.json
+```
 
-"fastapi`nuvicorn`nrequests`nlangchain`nlangchain-community`nlangchain-text-splitters`nfaiss-cpu`nsentence-transformers`npython-dotenv" | Out-File -FilePath requirements.txt -Encoding utf8
+## Setup
 
+### Backend
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/your-username/uninexus.git
+cd uninexus
+
+# 2. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Set your Groq API key
+cp .env.example .env
+# Edit .env → paste your GROQ_API_KEY
+# Get a free key at https://console.groq.com
+
+# 5. Start the backend
+uvicorn main:app --reload --port 8000
 ```
 
+The API will be available at `http://localhost:8000`. PDFs in `knowledge_base/` are indexed automatically on startup.
+
+### Frontend
+
+```bash
+cd Frontend
+npm install
+node shed.js
+```
+
+The schedule server runs at `http://localhost:3000`.
+
+## API endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/ask` | Ask the AI a question |
+| `POST` | `/api/upload` | Upload a PDF to the knowledge base |
+| `GET` | `/api/status` | Check if the vector store is ready |
+| `POST` | `/api/clear` | Clear the vector store and all PDFs |
+
+### Example request
+
+```bash
+curl -X POST http://localhost:8000/api/ask \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Що таке інкапсуляція?"}'
+```
+
+## How it works
+
+1. **Upload** — PDFs are split into 800-character chunks and embedded with `intfloat/multilingual-e5-small`
+2. **Ask** — the agent routes the query: `DOCS` (search knowledge base) or `GENERAL` (free chat)
+3. **Retrieve** — the query is refined by a fast model, then top-4 chunks are fetched from FAISS
+4. **Answer** — Llama 3.3 generates a response strictly from the retrieved context

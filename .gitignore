@@ -1,6 +1,29 @@
-# Created by venv; see https://docs.python.org/3/library/venv.html
-*
+# ── Secrets ──────────────────────────────────────────────────────────────────
 .env
-pycache/
-*.pyc
-.venv/.env
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.json
+# ── Generated data (FAISS index — rebuilt on startup) ─────────────────────────
+vectorstore/
+
+# ── Node ──────────────────────────────────────────────────────────────────────
+Frontend/node_modules/
+Frontend/.env
+
+# ── User-uploaded PDFs (optional: remove this line to track sample docs) ──────
+# knowledge_base/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp

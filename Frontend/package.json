@@ -1,7 +1,7 @@
 {
-  "name": "hackaton-",
+  "name": "uninexus-frontend",
   "version": "1.0.0",
-  "description": "",
+  "description": "UniNexus AI — frontend schedule server",
   "main": "shed.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
